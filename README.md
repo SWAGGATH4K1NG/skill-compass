@@ -2,20 +2,20 @@
 
 Platform-agnostic [Agent Skills](https://agentskills.io) that keep your skill collection legible as it grows.
 
-Install enough skills and you stop remembering what you have, what each one does, or which one actually fits the task in front of you. `skill-compass` is the tool that answers those questions instead of making you guess.
+I built this because I kept losing track of my own skills. Install enough of them and you stop remembering what you have, what each one does, or which one actually fits the task in front of you. `skill-compass` answers those questions instead of making you guess or dig through folders by hand.
 
-> Work in progress. The first skill is `skill-manager` — more are planned.
+> Work in progress. The first skill is `skill-manager`, more are planned.
 
 ## Why this exists
 
-Skills solve a real problem — reusable, sharable discipline for an agent — but they create a new one once you have more than a handful: **you can no longer hold your own collection in your head.**
+Skills solve a real problem: reusable, shareable discipline for an agent. But they create a new one once you have more than a handful. You can no longer hold your own collection in your head.
 
 - You forget a skill exists, so the agent falls back to guessing instead of using it.
 - You forget what a skill actually does, so you second-guess whether it's the right one.
-- Skills accumulate overlap (three frontend skills that all do roughly the same thing) with nothing pointing it out.
-- Installs silently break — broken symlinks, missing frontmatter, a skill installed for the wrong agent — and nothing tells you until the agent quietly fails to use it.
+- Skills pile up with overlap (three frontend skills doing roughly the same thing) and nothing points it out.
+- Installs break quietly: broken symlinks, missing frontmatter, a skill installed for the wrong agent. Nothing tells you until the agent fails to use it.
 
-`skill-manager` is built to answer these directly, on demand, without you having to audit your own `.claude/skills` folder by hand.
+`skill-manager` answers all of this directly, on demand, so you don't have to audit your own `.claude/skills` folder by hand.
 
 ## Skills
 
@@ -34,9 +34,9 @@ Ask it things like:
 - "Do I need all these frontend skills?" / "Should I install X?"
 - "Are my skills installed correctly?"
 
-Answers are short by default — one line per skill. Ask about a specific skill to get the full explanation.
+Answers are short by default, one line per skill. Ask about a specific skill to get the full explanation.
 
-It never installs, removes, edits, or runs anything on your behalf — it only reports on what's there.
+It never installs, removes, edits, or runs anything on your behalf. It only reports on what's there.
 
 ### Install
 
@@ -59,7 +59,7 @@ Agents pick skills automatically when your question matches the description, but
 | OpenCode | Mention it: `use the skill-manager skill - what skills do I have?` |
 | Other agents | Mention the skill by name in your message |
 
-Syntax changes between versions — check your agent's docs if one of these does not work: [Codex](https://developers.openai.com/codex/skills), [Cursor](https://cursor.com/docs/skills), [Windsurf](https://docs.windsurf.com/windsurf/cascade/skills), [OpenCode](https://opencode.ai/docs/skills/).
+Syntax changes between versions, so check your agent's docs if one of these does not work: [Codex](https://developers.openai.com/codex/skills), [Cursor](https://cursor.com/docs/skills), [Windsurf](https://docs.windsurf.com/windsurf/cascade/skills), [OpenCode](https://opencode.ai/docs/skills/).
 
 ### Make it trigger automatically
 
@@ -74,7 +74,7 @@ skill-manager skill.
 
 ### Use it without an agent
 
-The inventory script works on its own in any terminal — no tokens, no agent, no writes:
+The inventory script works on its own in any terminal. No tokens, no agent, no writes:
 
 ```bash
 node skills/skill-manager/scripts/inventory.mjs --text             # skills and problems
