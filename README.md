@@ -1,4 +1,4 @@
-# swagga-agent-skills
+# skill-compass
 
 Platform-agnostic [Agent Skills](https://agentskills.io) that help you work better and learn while you do it.
 
@@ -26,7 +26,7 @@ Answers are short by default - one line per skill. Ask about a specific skill to
 ### Install
 
 ```bash
-npx skills add <owner>/swagga-agent-skills --skill skill-manager
+npx skills add SWAGGATH4K1NG/skill-compass --skill skill-manager
 ```
 
 Optional: Node.js 18+ lets the skill use its read-only inventory script, which is faster and cheaper. Without Node it reads the skill folders directly.
@@ -73,3 +73,11 @@ It scans the skill folders of Claude Code, Codex, Cursor, OpenCode, Windsurf and
 
 - **`find-skills`** (vercel-labs) searches skills.sh for skills you *don't* have. `skill-manager` works on what you *already have* and hands off to `find-skills` when something is missing. Use them together: find-skills is the shop, skill-manager is the inventory.
 - **`ask-matt`** (mattpocock) routes between Matt Pocock's own skills. `skill-manager` works with skills from any source.
+
+### Test results
+
+The prompts and fixtures used to test the skill are in [`skills/skill-manager/evals`](skills/skill-manager/evals).
+
+## License
+
+[MIT](LICENSE)
