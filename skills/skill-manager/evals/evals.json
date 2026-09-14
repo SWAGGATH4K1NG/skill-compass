@@ -1,0 +1,47 @@
+{
+  "skill_name": "skill-manager",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "que skills é que tenho instaladas? já não me lembro do que metade delas fazem",
+      "expected_output": "Full inventory across all skill directories (~/.claude/skills, ~/.agents/skills, project .claude/.agents). Grouped by area, one line each. grill-me shown as a shortcut of grilling; teach manual-only. find-skills found. Does not list asymmetric-split-hero. Mentions problems exist without burying the list. States sources. Portuguese.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "vou implementar login com Google (OAuth) numa API Node que já tenho. que skills devo usar?",
+      "expected_output": "Recommends installed skills in order (backend-development first; review skills after; grilling optional). Warns nothing specialises in OAuth. Asks whether to search. Correctly says find-skills IS installed (in ~/.agents/skills) - does not claim it is missing. Does not implement.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "tenho imensas skills de frontend. preciso mesmo destas todas?",
+      "expected_output": "Uses the fixture skills. frontend-ui and ui-design overlap with frontend-design; design-taste-frontend and frontend-master have distinct angles. keep / worth reviewing per skill with reasons. Does not tell the user to delete or offer to delete.",
+      "files": ["evals/fixtures/frontend-overlap"]
+    },
+    {
+      "id": 4,
+      "prompt": "acabei de instalar a skill-manager e não tenho mais nenhuma skill. trabalho sobretudo em backend com Node e TypeScript. que skills devo instalar?",
+      "expected_output": "Says no other skills found. Does not produce its own list of named skills to install. Hands off to find-skills: shows how to install it and gives npx skills find examples for Node/TypeScript backend. Suggests starting small and coming back to check overlap. Security reminder. Runs nothing.",
+      "files": ["evals/fixtures/empty"]
+    },
+    {
+      "id": 5,
+      "prompt": "as minhas skills estão todas bem instaladas? sinto que o claude não está a usar algumas",
+      "expected_output": "Health check on the real environment. Finds the Prisma entries in the project .claude/skills are text files (broken symlinks) and explains the Windows cause and fix. Notes find-skills is only in ~/.agents/skills. Does not flag grill-me/teach as broken (manual-only is intentional). Does not modify any files. States sources.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "as minhas skills estão todas bem instaladas? sinto que o agente não está a usar algumas",
+      "expected_output": "Reproducible health check on the edge-cases fixture (dirs a and b). Reports: name collision (good-skill), invalid name (Bad_Name), name mismatch (mismatch/other-name), missing frontmatter, wrapper pointing to a missing skill (shortcut -> missing-one), path-as-text file, folder without SKILL.md, and the weak description (weak). Most serious first, each with a fix. Does not flag shortcut's short description as weak (manual-only). Modifies nothing.",
+      "files": ["evals/fixtures/edge-cases/a", "evals/fixtures/edge-cases/b"]
+    },
+    {
+      "id": 7,
+      "prompt": "o que é que a skill diagnosing-bugs faz ao certo e quando é que a devo usar?",
+      "expected_output": "Full-detail Explain mode on the real environment: what diagnosing-bugs does (from its body, not just the description), when to use it, when not to and which installed skill fits better then, automatic vs manual. Does not list every skill. Portuguese.",
+      "files": []
+    }
+  ]
+}
