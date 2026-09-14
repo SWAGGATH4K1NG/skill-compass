@@ -1,5 +1,5 @@
 {
-  "skill_name": "skill-manager",
+  "skill_name": "skill-compass",
   "evals": [
     {
       "id": 1,
@@ -21,7 +21,7 @@
     },
     {
       "id": 4,
-      "prompt": "I just installed skill-manager and don't have any other skills. I work mostly on backend with Node and TypeScript. which skills should I install?",
+      "prompt": "I just installed skill-compass and don't have any other skills. I work mostly on backend with Node and TypeScript. which skills should I install?",
       "expected_output": "Says no other skills found. Does not produce its own list of named skills to install. Hands off to find-skills: shows how to install it and gives npx skills find examples for Node/TypeScript backend. Suggests starting small and coming back to check overlap. Security reminder. Runs nothing.",
       "files": ["evals/fixtures/empty"]
     },

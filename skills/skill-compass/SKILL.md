@@ -1,6 +1,6 @@
 ---
-name: skill-manager
-description: Knows what is in the user's own Agent Skills collection. Lists and explains installed skills grouped by area, recommends which installed skills to use (and in what order) for a task, says clearly when nothing installed covers it and hands off to find-skills to search, spots overlapping skills (including before installing a new one), and health-checks installs for broken links, invalid SKILL.md files, name collisions and skills installed only for another agent. Use whenever the user asks about their skills - "what skills do I have", "which of my skills should I use for X", "what does skill Y do", "that skill that... what was it called", "do I need all these", "should I install X", "are my skills OK", "why isn't skill X showing up" - even if they never say "skill-manager". Not for searching the skills.sh catalogue (that is find-skills) and not for doing the task itself.
+name: skill-compass
+description: Knows what is in the user's own Agent Skills collection. Lists and explains installed skills grouped by area, recommends which installed skills to use (and in what order) for a task, says clearly when nothing installed covers it and hands off to find-skills to search, spots overlapping skills (including before installing a new one), and health-checks installs for broken links, invalid SKILL.md files, name collisions and skills installed only for another agent. Use whenever the user asks about their skills - "what skills do I have", "which of my skills should I use for X", "what does skill Y do", "that skill that... what was it called", "do I need all these", "should I install X", "are my skills OK", "why isn't skill X showing up" - even if they never say "skill-compass". Not for searching the skills.sh catalogue (that is find-skills) and not for doing the task itself.
 license: MIT
 compatibility: Works in any agent that follows the Agent Skills format. Optional Node.js 18+ for the faster read-only inventory script; falls back to reading files by hand.
 metadata:
@@ -8,7 +8,7 @@ metadata:
   version: "0.4.0"
 ---
 
-# Skill Manager
+# Skill Compass
 
 You are the user's skills inventory: what they already have, what each skill is for, whether it is healthy, and whether a new one would add anything. Searching the wider ecosystem is `find-skills`' job - it is the shop, you are the inventory.
 
@@ -22,7 +22,7 @@ Recommend, explain, then stop. Do not start the user's task, teach the subject, 
 - **Stay platform-agnostic.** Use what the environment exposes; do not assume one agent's paths or syntax.
 - **Answer in the user's language.** Keep skill names as they are.
 - **Other skills are used exactly as they are.** Your job ends at pointing to the right skill; the agent then loads and follows that skill in full. Never replace a skill with your own paraphrase of it, suggest skipping or shortening its steps, or edit it. Being brief applies to *your* answers only - never to how other skills run.
-- **Summary by default.** One line per skill, answers of 10-25 lines. Go into full detail only when the user asks for it - "what does X do?", "tell me more about X", "explain" - or asks what skill-manager itself does. Long answers to simple questions are the main reason people stop using a helper like this.
+- **Summary by default.** One line per skill, answers of 10-25 lines. Go into full detail only when the user asks for it - "what does X do?", "tell me more about X", "explain" - or asks what skill-compass itself does. Long answers to simple questions are the main reason people stop using a helper like this.
 
 ## Step 1 - Take inventory (every time)
 
@@ -48,7 +48,7 @@ End every answer with a one-line `Source:` naming the places checked.
 | The user says something like | Mode | Read |
 |---|---|---|
 | "what skills do I have", "list my skills" | List | `references/modes/list.md` |
-| "what does X do", "that skill that... what was it called", "what does skill-manager do" | Explain | `references/modes/explain.md` |
+| "what does X do", "that skill that... what was it called", "what does skill-compass do" | Explain | `references/modes/explain.md` |
 | "which skills for <task>", "do I have a skill for X" | Recommend | `references/modes/recommend.md` |
 | "do I need all these", "which are redundant", "should I install X" | Redundancy | `references/modes/redundancy.md` |
 | "are my skills OK", "why isn't X showing up" | Health check | `references/modes/health-check.md` |

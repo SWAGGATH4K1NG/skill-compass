@@ -17,7 +17,7 @@ Get its details (`--skill <name>`, or read its `SKILL.md`). Answer with:
 
 Match their description on meaning, not keywords. Give the best match with a one-line explanation, and a close second if there is one. Do not list everything.
 
-## skill-manager itself ("what does this skill do?")
+## skill-compass itself ("what does this skill do?")
 
 Explain briefly what it can do, with an example question for each:
 - List and summarise installed skills - "what skills do I have?"
@@ -27,4 +27,4 @@ Explain briefly what it can do, with an example question for each:
 - Spot overlaps, including before installing something new - "do I need all these frontend skills?"
 - Health-check installs - "are my skills OK?"
 
-Mention that the user can start it by name when the agent does not pick it up on its own (e.g. `/skill-manager` in agents with slash commands).
+Mention that the user can start it by name when the agent does not pick it up on its own (e.g. `/skill-compass` in agents with slash commands).
