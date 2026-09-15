@@ -91,7 +91,7 @@ It scans the skill folders of Claude Code, Codex, Cursor, OpenCode, Windsurf and
 
 ### Test results
 
-The prompts and fixtures used to test the skill are in [`skills/skill-compass/evals`](skills/skill-compass/evals).
+The prompts and fixtures used to test the skill are in [`evals`](evals).
 
 ## License
 
