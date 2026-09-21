@@ -6,7 +6,7 @@
 //
 //   --summary      one short line per skill, long issue lists truncated (use for listing/recommending)
 //   --issues       only problems, no skill list (use for health checks)
-//   --skill <n>    full detail for one skill and the issues that mention it
+//   --skill <n>    full detail for one skill and the issues that mention it (plugin skills match "plugin:n" too)
 //   --text         human-readable output instead of JSON (implies --summary unless --skill); good for terminals
 //   --cwd          project folder whose .claude/.agents/... skill dirs are scanned (default: current dir)
 //   --home         user home folder (default: os.homedir())
@@ -14,7 +14,8 @@
 //   --only-dirs    scan only the --dir directories (useful for fixtures)
 //   --pretty       indent the JSON output
 //
-// Default prints compact JSON: { scanned: { found, missing }, skills, issues } with full descriptions.
+// Default prints compact JSON: { scanned: { found, missing }, skills, issues, notes } with full descriptions.
+// Skills may carry `origin` ("plugin" or "synced") and `similarTo` (overlap candidates, by wording).
 // Never writes anything.
 
 import fs from 'node:fs';
@@ -38,6 +39,10 @@ const USER_DIRS = [
   { rel: '.config/opencode/skills', agents: ['opencode'] },
   { rel: '.codeium/windsurf/skills', agents: ['windsurf'] },
 ];
+
+// Installed plugins that bundle skills (<plugin>/.claude-plugin/plugin.json + <plugin>/skills/*/SKILL.md).
+// `marketplaces` holds the catalogue of plugins you *could* install, not installed ones.
+const PLUGIN_ROOTS = [{ rel: '.claude/plugins', agents: ['claude-code'], skip: ['marketplaces'], depth: 4 }];
 
 const NAME_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -65,6 +70,8 @@ function parseArgs(argv) {
 const statSafe = (p) => { try { return fs.statSync(p); } catch { return null; } };
 const lstatSafe = (p) => { try { return fs.lstatSync(p); } catch { return null; } };
 const readDirSafe = (p) => { try { return fs.readdirSync(p); } catch { return []; } };
+const isDir = (p) => !!statSafe(p)?.isDirectory();
+const hasSkillMd = (p) => fs.existsSync(path.join(p, 'SKILL.md'));
 
 function unquote(v) {
   const s = v.trim();
@@ -133,6 +140,140 @@ function summarize(description, max = 140) {
   return first.length > max ? first.slice(0, max - 1).trimEnd() + '…' : first;
 }
 
+// ── Nested skills ─────────────────────────────────────────────────────────────
+
+// Skill folders below `dir`, up to `depth` levels (category folders, account-synced bundles).
+// A folder holding a manifest.json marks its skills as `synced` (e.g. skills synced from an account).
+function findNestedSkills(dir, depth, synced = false) {
+  if (depth <= 0) return [];
+  const out = [];
+  const inBundle = synced || fs.existsSync(path.join(dir, 'manifest.json'));
+  for (const c of readDirSafe(dir)) {
+    if (c.startsWith('.')) continue;
+    const cp = path.join(dir, c);
+    if (!isDir(cp)) continue;
+    if (hasSkillMd(cp)) out.push({ dir: cp, synced: inBundle });
+    else out.push(...findNestedSkills(cp, depth - 1, inBundle));
+  }
+  return out;
+}
+
+const DATA_FILE_RE = /\.(json|lock|ya?ml|toml|db|sqlite|log|cache|bin)$/i;
+
+// Why a folder in a skills directory has no skill, so the agent can tell broken installs from harmless folders.
+function describeFolder(p) {
+  const entries = readDirSafe(p).filter((e) => !e.startsWith('.'));
+  if (!entries.length) {
+    return { severity: 'info', type: 'empty-folder', message: 'Empty folder in a skills directory; there is nothing to load.' };
+  }
+  if (findNestedSkills(p, 5).length) {
+    return { severity: 'warning', type: 'skills-too-deep', message: 'Contains skills more than three levels below the skills directory; most agents will not find them.' };
+  }
+  const files = entries.filter((e) => statSafe(path.join(p, e))?.isFile());
+  if (files.length === entries.length && files.every((f) => DATA_FILE_RE.test(f))) {
+    return { severity: 'info', type: 'not-a-skill', message: "Only data/config files and no SKILL.md; probably another tool's folder, not a broken skill." };
+  }
+  return { severity: 'warning', type: 'no-skill-md', message: 'Folder in a skills directory without a SKILL.md; possibly a skill whose SKILL.md is missing or renamed.' };
+}
+
+// ── Plugins ───────────────────────────────────────────────────────────────────
+
+function findPluginRoots(dir, depth, skip) {
+  if (depth <= 0) return [];
+  const out = [];
+  for (const c of readDirSafe(dir)) {
+    if (c.startsWith('.') || skip.includes(c)) continue;
+    const cp = path.join(dir, c);
+    if (!isDir(cp)) continue;
+    if (fs.existsSync(path.join(cp, '.claude-plugin', 'plugin.json'))) out.push(cp);
+    else out.push(...findPluginRoots(cp, depth - 1, skip));
+  }
+  return out;
+}
+
+function pluginInfo(root) {
+  let json = {};
+  try { json = JSON.parse(fs.readFileSync(path.join(root, '.claude-plugin', 'plugin.json'), 'utf8')); } catch { /* use fallbacks */ }
+  const name = typeof json.name === 'string' && json.name.trim() ? json.name.trim() : path.basename(root);
+  const version = typeof json.version === 'string' ? json.version : '';
+  return { root, name, version, mtime: statSafe(root)?.mtimeMs ?? 0 };
+}
+
+// Newest first: highest version in plugin.json, then most recently modified folder.
+function compareNewest(a, b) {
+  const pa = a.version.split(/[.-]/).map((n) => parseInt(n, 10) || 0);
+  const pb = b.version.split(/[.-]/).map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pb[i] ?? 0) - (pa[i] ?? 0);
+  }
+  return b.mtime - a.mtime;
+}
+
+// ── Overlaps ──────────────────────────────────────────────────────────────────
+//
+// Cheap lexical heuristic: TF-IDF cosine over names (counted twice) + descriptions. Words that are
+// rare across the collection weigh more, so "review" or "frontend" pull two skills together while
+// "code" or "engineering" barely count. It only proposes candidates for the redundancy mode; the
+// agent still reads the SKILL.md bodies before calling anything a duplicate.
+
+const STOP = new Set(`a an the and or of to for in on with without by from as at is are be been it its this that these those
+your you user users agent agents skill skills use used uses using when whenever any all into can not no do does what which how
+new more also only one eg etc like via about than then so if even their them they need needs want wants help helps before after
+while where who why should would could may might must just every each other own out over under up down still yet same such
+something anything instead rather make makes get gets give gives work works engineering development driven`.split(/\s+/));
+
+const stem = (w) => (w.length > 5 ? w.replace(/(ations?|ings?|ers?|ed|es|s)$/, '') : w);
+
+const words = (text) =>
+  text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').split(' ')
+    .filter((w) => w.length >= 3 && !STOP.has(w))
+    .map(stem);
+
+const SIMILAR_THRESHOLD = 0.15;
+
+function computeSimilar(skills) {
+  const shortName = (n) => n.split(':').pop();
+  const docs = skills.map((s) => {
+    const nameWords = words(shortName(s.name).replace(/-/g, ' '));
+    const tf = new Map();
+    for (const w of [...words(s.description), ...nameWords, ...nameWords]) tf.set(w, (tf.get(w) || 0) + 1);
+    return { s, tf };
+  });
+
+  const df = new Map();
+  for (const d of docs) for (const w of d.tf.keys()) df.set(w, (df.get(w) || 0) + 1);
+  for (const d of docs) {
+    d.vec = new Map();
+    let norm = 0;
+    for (const [w, c] of d.tf) {
+      const x = (1 + Math.log(c)) * Math.log(1 + docs.length / df.get(w));
+      d.vec.set(w, x);
+      norm += x * x;
+    }
+    d.norm = Math.sqrt(norm) || 1;
+  }
+
+  for (const a of docs) {
+    const scored = [];
+    for (const b of docs) {
+      const an = shortName(a.s.name);
+      const bn = shortName(b.s.name);
+      if (a === b || an === bn || a.s.wrapperOf === bn || b.s.wrapperOf === an) continue;
+      let dot = 0;
+      for (const [w, x] of a.vec) {
+        const y = b.vec.get(w);
+        if (y) dot += x * y;
+      }
+      const score = dot / (a.norm * b.norm);
+      if (score >= SIMILAR_THRESHOLD) scored.push({ name: b.s.name, score });
+    }
+    scored.sort((x, y) => y.score - x.score);
+    if (scored.length) a.s.similarTo = scored.slice(0, 3).map((x) => x.name);
+  }
+}
+
+// ── Output ────────────────────────────────────────────────────────────────────
+
 function toText(result) {
   const out = [];
   if (result.notFound) out.push(`No skill named "${result.notFound}" found.`, '');
@@ -140,10 +281,12 @@ function toText(result) {
     out.push(`Skills (${result.skills.length})`);
     for (const s of result.skills) {
       const tags = [s.agents.join(', ')];
+      if (s.origin) tags.push(s.origin);
       if (s.manualOnly) tags.push('manual only');
       if (s.wrapperOf) tags.push(`shortcut for ${s.wrapperOf}`);
       out.push(`  ${s.name}  [${tags.join(' · ')}]`);
       out.push(`    ${s.summary ?? s.description}`);
+      if (s.similarTo) out.push(`    similar to: ${s.similarTo.join(', ')}`);
       if (s.locations) s.locations.forEach((l) => out.push(`    at ${l}`));
     }
     out.push('');
@@ -163,6 +306,7 @@ function toText(result) {
   } else {
     out.push('No issues found.');
   }
+  if (result.notes?.length) out.push('', ...result.notes.map((n) => `Note: ${n}`));
   out.push('', `Scanned: ${result.scanned.found.map((d) => d.path).join(', ') || 'no skill directories found'}`);
   return out.join('\n');
 }
@@ -200,7 +344,7 @@ function main() {
   const found = []; // one entry per SKILL.md location
   const issues = [];
 
-  const addSkill = (skillDir, dirInfo) => {
+  const addSkill = (skillDir, dirInfo, { namespace, synced } = {}) => {
     const file = path.join(skillDir, 'SKILL.md');
     let raw;
     try { raw = fs.readFileSync(file, 'utf8').replace(/^﻿/, ''); } catch { return; }
@@ -225,11 +369,13 @@ function main() {
       issues.push({ severity: 'info', type: 'weak-description', path: pretty(file), message: 'Very short description; the agent may rarely pick this skill on its own.' });
     }
 
+    const base = name || folder;
     found.push({
-      name: name || folder,
+      name: namespace ? `${namespace}:${base}` : base,
       description,
       manualOnly,
       wrapperOf: detectWrapper(body),
+      origin: namespace ? 'plugin' : synced ? 'synced' : undefined,
       hash: crypto.createHash('sha1').update(raw).digest('hex'),
       location: loc,
     });
@@ -273,22 +419,50 @@ function main() {
       }
 
       if (!est.isDirectory()) continue;
-      if (fs.existsSync(path.join(p, 'SKILL.md'))) {
+      if (hasSkillMd(p)) {
         addSkill(p, dirInfo);
         continue;
       }
-      // One more level, for category folders like skills/engineering/tdd.
-      const nested = readDirSafe(p).map((c) => path.join(p, c)).filter((c) => fs.existsSync(path.join(c, 'SKILL.md')));
-      if (nested.length) nested.forEach((c) => addSkill(c, dirInfo));
-      else issues.push({ severity: 'warning', type: 'no-skill-md', path: pretty(p), message: 'Folder in a skills directory without a SKILL.md.' });
+      // Two more levels (three below the skills dir), for category folders (skills/engineering/tdd) and synced bundles (synced/<id>/docx).
+      const nested = findNestedSkills(p, 2);
+      if (nested.length) nested.forEach((n) => addSkill(n.dir, dirInfo, { synced: n.synced }));
+      else issues.push({ ...describeFolder(p), path: pretty(p) });
+    }
+  }
+
+  // Plugin skills, named "<plugin>:<skill>" the way agents show them. Several cached versions of one
+  // plugin are counted once (newest version wins), so upgrades do not look like name collisions.
+  let pluginsFound = 0;
+  if (!args.onlyDirs) {
+    for (const pr of PLUGIN_ROOTS) {
+      const abs = path.join(home, pr.rel);
+      const roots = findPluginRoots(abs, pr.depth, pr.skip).map(pluginInfo).sort(compareNewest);
+      const seen = new Set();
+      const dirInfo = { scope: 'plugin', agents: pr.agents };
+      for (const { root, name } of roots) {
+        if (seen.has(name)) continue;
+        seen.add(name);
+        const skillsDir = path.join(root, 'skills');
+        for (const c of readDirSafe(skillsDir)) {
+          const cp = path.join(skillsDir, c);
+          if (!c.startsWith('.') && isDir(cp) && hasSkillMd(cp)) {
+            addSkill(cp, dirInfo, { namespace: name });
+            pluginsFound++;
+          }
+        }
+      }
+      scanned.push({ path: pretty(abs), scope: 'plugin', agents: pr.agents, exists: pluginsFound > 0 });
     }
   }
 
   // Merge locations by name; same content = normal multi-location install, different content = collision.
+  // Synced skills are kept apart: agents show them under their own prefix, so a same-named local skill
+  // is not a collision.
   const byName = new Map();
   for (const f of found) {
-    if (!byName.has(f.name)) byName.set(f.name, { ...f, locations: [], hashes: new Set() });
-    const s = byName.get(f.name);
+    const key = `${f.origin === 'synced' ? 'synced/' : ''}${f.name}`;
+    if (!byName.has(key)) byName.set(key, { ...f, locations: [], hashes: new Set() });
+    const s = byName.get(key);
     s.locations.push(f.location);
     s.hashes.add(f.hash);
   }
@@ -299,15 +473,25 @@ function main() {
       issues.push({ severity: 'error', type: 'name-collision', name: s.name, paths: s.locations.map((l) => l.path), message: `"${s.name}" exists with different content in ${s.locations.length} places; the agent may load either.` });
     }
     const agents = [...new Set(s.locations.flatMap((l) => l.agents))];
-    skills.push({ name: s.name, description: s.description, manualOnly: s.manualOnly, wrapperOf: s.wrapperOf, agents, locations: s.locations.map((l) => l.path) });
+    skills.push({
+      name: s.name,
+      description: s.description,
+      manualOnly: s.manualOnly,
+      wrapperOf: s.wrapperOf,
+      ...(s.origin && { origin: s.origin }),
+      agents,
+      locations: s.locations.map((l) => l.path),
+    });
   }
+  const installedNames = new Set(skills.flatMap((s) => [s.name, s.name.split(':').pop()]));
   for (const s of skills) {
-    if (s.wrapperOf && !byName.has(s.wrapperOf)) {
+    if (s.wrapperOf && !installedNames.has(s.wrapperOf)) {
       issues.push({ severity: 'error', type: 'wrapper-target-missing', name: s.name, message: `"${s.name}" runs "${s.wrapperOf}", which is not installed.` });
     }
   }
 
   skills.sort((a, b) => a.name.localeCompare(b.name));
+  computeSimilar(skills);
 
   // Group identical issues (e.g. nine broken links with the same cause) to keep the output short.
   const groups = new Map();
@@ -324,25 +508,32 @@ function main() {
     missing: scanned.filter((d) => !d.exists).map((d) => d.path),
   };
 
+  const notes = [];
+  if (!args.onlyDirs) {
+    notes.push('Skills built into the agent, or loaded from sources not on disk, are not listed here. Merge the skills listed in your context; agents may show them with a prefix such as "plugin:skill".');
+  }
+
   let outSkills = skills;
   let outIssues = groupedIssues;
   let notFound;
 
   if (args.skill) {
     // Full detail for one skill, plus only the issues that mention it.
-    outSkills = skills.filter((s) => s.name === args.skill);
+    outSkills = skills.filter((s) => s.name === args.skill || s.name.endsWith(`:${args.skill}`));
     if (!outSkills.length) notFound = args.skill;
     outIssues = groupedIssues
       .map((g) => ({ ...g, items: g.items.filter((it) => JSON.stringify(it).includes(args.skill)) }))
       .filter((g) => g.items.length || g.message.includes(`"${args.skill}"`));
   } else if (args.summary || args.text) {
     // Default for listing: one short line per skill, long issue lists truncated.
-    outSkills = skills.map(({ name, description, manualOnly, wrapperOf, agents }) => ({
+    outSkills = skills.map(({ name, description, manualOnly, wrapperOf, origin, agents, similarTo }) => ({
       name,
       summary: summarize(description),
       ...(manualOnly && { manualOnly }),
       ...(wrapperOf && { wrapperOf }),
+      ...(origin && { origin }),
       agents,
+      ...(similarTo && { similarTo }),
     }));
     outIssues = groupedIssues.map((g) => (g.items.length > 3 ? { ...g, count: g.items.length, items: g.items.slice(0, 3) } : g));
   }
@@ -351,6 +542,7 @@ function main() {
   if (!args.issues) result.skills = outSkills;
   if (notFound) result.notFound = notFound;
   result.issues = outIssues;
+  if (notes.length) result.notes = notes;
 
   if (args.text) console.log(toText(result));
   else console.log(args.pretty ? JSON.stringify(result, null, 2) : JSON.stringify(result));

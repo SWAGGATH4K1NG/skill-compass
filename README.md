@@ -82,7 +82,7 @@ node skills/skill-compass/scripts/inventory.mjs --issues --text    # problems on
 node skills/skill-compass/scripts/inventory.mjs --skill grilling --text
 ```
 
-It scans the skill folders of Claude Code, Codex, Cursor, OpenCode, Windsurf and the shared `.agents/skills`, for both your user folder and the current project. It never writes anything.
+It scans the skill folders of Claude Code, Codex, Cursor, OpenCode, Windsurf and the shared `.agents/skills`, for both your user folder and the current project, plus skills bundled in installed Claude Code plugins (shown as `plugin:skill`) and account-synced skill bundles. For each skill it also suggests likely overlaps (`similarTo`), so redundant skills are easier to spot. It never writes anything.
 
 ### How is this different from…
 

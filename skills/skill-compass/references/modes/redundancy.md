@@ -1,6 +1,8 @@
 # Redundancy
 
-Compare skills by what they actually do. Start from the summaries; read the `SKILL.md` bodies of the skills that look alike, since descriptions are often too vague to tell them apart.
+Compare skills by what they actually do. Start from the summaries and the `similarTo` field; read the `SKILL.md` bodies of the skills that look alike, since descriptions are often too vague to tell them apart.
+
+`similarTo` is a word-overlap heuristic, not a verdict. It misses pairs that describe the same job in different words (e.g. "diagnose" vs "debug"), and it flags pairs that share vocabulary but do different jobs (a skill finder vs a skill inventory). Use it to decide what to read, then judge from the bodies.
 
 Classify each overlapping group:
 - **Duplicate** - same job, same kind of help.

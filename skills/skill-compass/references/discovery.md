@@ -14,10 +14,11 @@ Check **all** of these that exist, not only the ones for the agent you are runni
 | Cursor | `.agents/skills/`, `.cursor/skills/` | `~/.cursor/skills/` |
 | OpenCode | `.agents/skills/`, `.opencode/skills/` | `~/.config/opencode/skills/` |
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| Claude Code plugins | - | `~/.claude/plugins/**/<plugin>/skills/*/` (skip `marketplaces/`, which is the catalogue, not installed plugins) |
 
 Project directories are relative to the current working directory. On Windows, `~` is the user profile folder (e.g. `C:\Users\<name>`).
 
-A skill is a directory containing `SKILL.md`. Look one or two levels deep (`<dir>/*/SKILL.md`, `<dir>/*/*/SKILL.md`). Also note entries in these directories that are *not* skill directories (plain files, empty folders) - they are usually broken installs; see `modes/health-check.md`.
+A skill is a directory containing `SKILL.md`. Look up to three levels deep (`<dir>/*/SKILL.md`, `<dir>/*/*/SKILL.md`, `<dir>/*/*/*/SKILL.md`) - category folders and synced bundles (a folder with a `manifest.json` next to skill folders, e.g. `~/.claude/skills/synced/<id>/docx`) put skills below the top level. Also note entries in these directories that are *not* skill directories (plain files, empty folders) - they are usually broken installs; see `modes/health-check.md`.
 
 If the user has shell access and agrees, `npx skills list` lists skills installed through the skills CLI. Ask first - it downloads and runs a package.
 
@@ -39,4 +40,6 @@ A skill on disk is not necessarily one the current agent loads.
 - **Manual-only skills.** Fields like `disable-model-invocation: true` mean the agent will not pick the skill on its own; the user must start it.
 - **Wrapper / alias skills.** A body that does little more than run another skill (e.g. "Call the Skill tool with grilling") is a shortcut. Show it under the skill it wraps.
 - **Same skill in several places.** Same name and same content in multiple directories is usually a multi-agent install or symlink - list it once, mention the locations only if relevant.
+- **Plugin skills.** A plugin folder (`.claude-plugin/plugin.json`) with a `skills/` folder. Agents show these as `<plugin>:<skill>`, so `engineering:code-review` and a local `code-review` are different skills, not a collision. Several cached versions of one plugin are one install.
+- **Synced skills.** Skills synced from an account arrive as a bundle and are shown by the agent under their own prefix; a local skill with the same name is not a collision.
 - **Unknown frontmatter fields.** Agents add their own. Ignore ones you do not recognise.
