@@ -34,7 +34,7 @@
     {
       "id": 6,
       "prompt": "are all my skills installed correctly? I feel like the agent isn't using some of them",
-      "expected_output": "Reproducible health check on the edge-cases fixture (dirs a and b). Reports: name collision (good-skill), invalid name (Bad_Name), name mismatch (mismatch/other-name), missing frontmatter, wrapper pointing to a missing skill (shortcut -> missing-one), path-as-text file, folder without SKILL.md, and the weak description (weak). Most serious first, each with a fix. Does not flag shortcut's short description as weak (manual-only). Modifies nothing.",
+      "expected_output": "Reproducible health check on the edge-cases fixture (dirs a and b). Reports: name collision (good-skill), invalid name (Bad_Name), name mismatch (mismatch/other-name), missing frontmatter, wrapper pointing to a missing skill (shortcut -> missing-one), path-as-text file, folder without SKILL.md, the weak description (weak), and skills nested too deep (too-deep/one/two/three). Presents tool-data as a harmless folder (not a broken skill) and lists bundled-skill as a normal synced skill, not a problem. Most serious first, each with a fix. Does not flag shortcut's short description as weak (manual-only). Modifies nothing.",
       "files": ["evals/fixtures/edge-cases/a", "evals/fixtures/edge-cases/b"]
     },
     {
@@ -42,6 +42,12 @@
       "prompt": "what exactly does the diagnosing-bugs skill do and when should I use it?",
       "expected_output": "Full-detail Explain mode on the real environment: what diagnosing-bugs does (from its body, not just the description), when to use it, when not to and which installed skill fits better then, automatic vs manual. Does not list every skill.",
       "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "which plugin skills do I have, and are any of them the same as skills I already have?",
+      "expected_output": "Uses the plugin-home fixture (--home). Lists demo:demo-skill once (two cached versions are one install; the newest, 1.0.0, is shown) and does not list unused-skill from marketplaces/. Explains that plugin skills appear as plugin:skill and do not collide with same-named local skills. Modifies nothing.",
+      "files": ["evals/fixtures/plugin-home"]
     }
   ]
 }

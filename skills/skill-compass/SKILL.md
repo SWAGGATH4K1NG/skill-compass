@@ -5,7 +5,7 @@ license: MIT
 compatibility: Works in any agent that follows the Agent Skills format. Optional Node.js 18+ for the faster read-only inventory script; falls back to reading files by hand.
 metadata:
   category: meta
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # Skill Compass
@@ -37,8 +37,8 @@ A partial scan leads to wrong answers ("you don't have find-skills" when it sits
    | Health check | `... --issues --cwd <project folder>` |
    | One skill in detail | `... --skill <name> --cwd <project folder>` |
 
-   It only reads files, scans every known skill directory for all agents, and returns JSON with each skill (`manualOnly`, `wrapperOf`, `agents`) plus `issues`. If it is unavailable or fails, scan by hand using `references/discovery.md`.
-3. **Merge** with your context: where each skill lives, whether this agent can load it, whether it is manual-only or a shortcut for another skill.
+   It only reads files, scans every known skill directory for all agents (plus installed plugins and synced bundles), and returns JSON with each skill (`manualOnly`, `wrapperOf`, `origin`, `agents`, `similarTo`) plus `issues` and `notes`. If it is unavailable or fails, scan by hand using `references/discovery.md`.
+3. **Merge** with your context: where each skill lives, whether this agent can load it, whether it is manual-only or a shortcut for another skill. Your context may list skills the script cannot see (built into the agent, or from sources not on disk) - include them too. Agents often show plugin or synced skills with a prefix (`engineering:debug`, `anthropic-skills:docx`); match on the part after the colon.
 4. **If you can see nothing** (no skills in context, no commands, no file access), say so and ask for a path or a list.
 
 End every answer with a one-line `Source:` naming the places checked.

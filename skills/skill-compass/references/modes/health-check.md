@@ -1,13 +1,15 @@
 # Health check
 
-Use `inventory.mjs --issues`. Its `issues` already cover checks 1, 2, 3 and 5 below (types: `symlink-as-text`, `broken-link`, `no-skill-md`, `wrapper-target-missing`, `no-frontmatter`, `missing-name`, `name-mismatch`, `invalid-name`, `missing-description`, `description-too-long`, `name-collision`, `weak-description`) - explain them rather than re-checking by hand. Check 4 needs your context (which skills this agent actually loads); check 6 only applies to files you read.
+Use `inventory.mjs --issues`. Its `issues` already cover checks 1, 2, 3 and 5 below (types: `symlink-as-text`, `broken-link`, `no-skill-md`, `skills-too-deep`, `empty-folder`, `not-a-skill`, `wrapper-target-missing`, `no-frontmatter`, `missing-name`, `name-mismatch`, `invalid-name`, `missing-description`, `description-too-long`, `name-collision`, `weak-description`) - explain them rather than re-checking by hand. Check 4 needs your context (which skills this agent actually loads); check 6 only applies to files you read.
 
 Report only real findings, most serious first. For each: what is wrong, why it matters, how the user can fix it (as a suggestion or command - never fix it yourself). If everything is fine, say so in one line.
 
 ## 1. Broken installs (serious)
 - **Plain file where a skill folder should be.** A small text file containing a relative path (e.g. `../../.agents/skills/prisma-cli`) is a symlink checked out as text - common on Windows when Git has `core.symlinks=false` or Developer Mode is off. The agent cannot load it.
   Fix: enable symlinks (Developer Mode + `git config core.symlinks true`, then re-checkout), reinstall with `npx skills add ... --copy`, or copy the real folder in.
-- **Folder without `SKILL.md`**, or a link whose target does not exist.
+- **Folder without `SKILL.md`** (`no-skill-md`), or a link whose target does not exist.
+- **Skills nested too deep** (`skills-too-deep`): more than three levels below the skills directory. Most agents will not find them. Fix: move the skill folders up, or reinstall.
+- **Harmless folders** (`empty-folder`, `not-a-skill`, severity info): empty, or only data/config files such as another tool's cache. Mention them in one line as safe to ignore - do not present them as broken installs.
 - **Shortcut pointing to a skill that is not installed.**
 
 ## 2. Invalid SKILL.md (serious)
